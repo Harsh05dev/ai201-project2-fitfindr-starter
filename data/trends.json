@@ -1,0 +1,17 @@
+{
+  "_source": "Mock Depop/Pinterest trend snapshot — public tag data for demo",
+  "trends_by_size": {
+    "S": ["cottagecore", "y2k", "coquette"],
+    "M": ["grunge", "streetwear", "vintage band tee", "wide-leg denim"],
+    "L": ["oversized", "90s", "workwear", "earth tones"],
+    "default": ["vintage", "thrifted", "sustainable fashion", "layering"]
+  },
+  "hot_tags_2026": [
+    "baggy jeans",
+    "chunky sneakers",
+    "graphic tee",
+    "cargo pants",
+    "mesh layering",
+    "distressed denim"
+  ]
+}

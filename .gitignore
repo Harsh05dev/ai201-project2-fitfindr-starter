@@ -1,6 +1,9 @@
 # API keys — never commit these
 .env
 
+# Runtime user data
+data/style_profile.json
+
 # Python
 __pycache__/
 *.py[cod]
