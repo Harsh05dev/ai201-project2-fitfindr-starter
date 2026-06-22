@@ -68,7 +68,36 @@ A `str` of 2–4 sentences usable as a social caption. Mentions item name, price
 
 ### Additional Tools (if any)
 
-None for the required submission. (Stretch: price comparison, style profile memory, retry with loosened constraints.)
+#### Tool 4: compare_price (stretch)
+
+**What it does:** Compares a listing's price to comparable items in the same category with overlapping style tags.
+
+**Input parameters:**
+- `item` (dict): Listing dict with `id`, `category`, `style_tags`, `price`.
+
+**What it returns:** `str` — verdict (Good deal / Fair price / Above average) with average price, range, and count of comparables.
+
+**Failure mode:** If item data incomplete, returns error string. Agent still continues to outfit suggestion.
+
+#### Tool 5: check_trends (stretch)
+
+**What it does:** Reads mock Depop/Pinterest tag data from `data/trends.json` and returns trending styles for the user's size bucket.
+
+**Input parameters:**
+- `size` (str | None): Size string for bucket lookup.
+- `category` (str | None): Optional category for context in the message.
+
+**What it returns:** `str` describing trending styles and hot tags.
+
+**Failure mode:** If file missing, returns "Trend data temporarily unavailable." Agent continues.
+
+#### Style profile memory (stretch — `utils/style_profile.py`)
+
+Persists `preferred_styles`, `preferred_size`, `typical_max_price` to `data/style_profile.json` after successful runs. On next query, fills missing parsed fields and shows a note in the UI.
+
+#### Retry with fallback (stretch — `_search_with_retry` in `agent.py`)
+
+If initial `search_listings` returns `[]`, retry without size filter, then without price limit, setting `search_retry_note` explaining what was adjusted.
 
 ---
 
@@ -80,14 +109,14 @@ The agent uses a **conditional sequential loop** — not a fixed pipeline. Each 
 
 1. **Initialize** `session = _new_session(query, wardrobe)`.
 2. **Parse query** with regex to extract `description`, `size`, and `max_price` from the natural-language string. Store in `session["parsed"]`. Parsing uses patterns like `under $30` / `max $30` for price, `size M` / `size 8` for size, and the remaining text (minus price/size phrases) as description.
-3. **Call `search_listings`** with parsed params → store in `session["search_results"]`.
-   - **Branch:** If `search_results` is empty → set `session["error"]` with actionable advice → **return session early** (do NOT call other tools).
-4. **Select top result** → `session["selected_item"] = search_results[0]`.
-5. **Call `suggest_outfit(selected_item, wardrobe)`** → store in `session["outfit_suggestion"]`.
-   - Only runs because step 3 had results (conditional, not unconditional).
-6. **Call `create_fit_card(outfit_suggestion, selected_item)`** → store in `session["fit_card"]`.
-   - Only runs if `outfit_suggestion` is non-empty; if `create_fit_card` returns an error string, store it in `fit_card` and optionally set `error`.
-7. **Return session** with `error = None` on success.
+3. **Apply style profile** (stretch) — fill missing size/budget from saved profile.
+4. **Call `search_listings` with retry** (`_search_with_retry`) → store in `session["search_results"]`.
+   - **Branch:** If still empty after retries → set `session["error"]` → **return early**.
+5. **Select top result** → `session["selected_item"]`.
+6. **Call `compare_price` and `check_trends`** (stretch) → store assessments.
+7. **Call `suggest_outfit`** with selected item, wardrobe, trends, style profile.
+8. **Call `create_fit_card`** → store fit card.
+9. **Save style profile** and return session.
 
 **Done when:** All three tools succeed, or an early-return branch fires (empty search results).
 
